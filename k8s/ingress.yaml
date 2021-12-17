@@ -1,0 +1,54 @@
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: ingress-gateway
+spec:
+  listeners:
+    - port: 8080
+      protocol: http
+      services:
+        - name: frontend
+          hosts: 
+          - "*"
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: frontend
+spec:
+  protocol: http
+# ---
+# apiVersion: consul.hashicorp.com/v1alpha1
+# kind: ServiceRouter
+# metadata:
+#   name: frontend-v2
+# spec:
+#   routes:
+#     - match:
+#         http:
+#           pathPrefix: '/test'
+#       destination:
+#         service: frontend-v1
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: frontend
+spec:
+  defaultSubset: v1
+  subsets:
+    v1:
+      filter: "Service.Meta.version == v1"
+    v2:
+      filter: "Service.Meta.version == v2"
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: frontend
+spec:
+  splits:
+    - weight: 50
+      serviceSubset: v1
+    - weight: 50
+      serviceSubset: v2
